@@ -7,18 +7,19 @@ from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.llms import CTransformers
 from langchain.chains import ConversationalRetrievalChain
+from ctransformers import AutoModelForCausalLM
+from langchain.llms.huggingface_hub import HuggingFaceHub
+import os
+
+os.environ['HUGGINGFACEHUB_API_TOKEN'] = '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'
+
 
 # Define the path for generated embeddings
 DB_FAISS_PATH = 'vectorstore/db_faiss'
 
 # Load the model of choice
 def load_llm():
-    llm = CTransformers(
-        model="llama-2-7b-chat.ggmlv3.q8_0.bin",
-        model_type="llama",
-        max_new_tokens=512,
-        temperature=0.5
-    )
+    llm = HuggingFaceHub(repo_id="google/flan-t5-xxl", model_kwargs={"temperature":0.7, "max_length":512})
     return llm
 
 # Set the title for the Streamlit app
