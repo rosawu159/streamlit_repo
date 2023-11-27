@@ -11,7 +11,8 @@ from ctransformers import AutoModelForCausalLM
 from langchain.llms.huggingface_hub import HuggingFaceHub
 import os
 
-os.environ['HUGGINGFACEHUB_API_TOKEN'] = API
+os.environ['HUGGINGFACEHUB_API_TOKEN'] = HUGGINGFACEHUB_API_TOKEN
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 # Define the path for generated embeddings
@@ -19,8 +20,24 @@ DB_FAISS_PATH = 'vectorstore/db_faiss'
 
 # Load the model of choice
 def load_llm():
-    llm = HuggingFaceHub(repo_id="google/flan-t5-xxl", model_kwargs={"temperature":0.7, "max_length":512})
+    llm = CTransformers(
+        model="llama-2-7b-chat.ggmlv3.q8_0.bin",
+        model_type="llama",
+        max_new_tokens=512,
+        temperature=0.5
+    )
     return llm
+
+# Load the model of choice
+@st.cache_resource
+def load_data(uploaded_file):
+    with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+        tmp_file.write(uploaded_file.getvalue())
+        tmp_file_path = tmp_file.name
+    # Load CSV data using CSVLoader
+    loader = CSVLoader(file_path=tmp_file_path, encoding="utf-8", csv_args={'delimiter': ','})
+    data = loader.load()
+    return data
 
 # Set the title for the Streamlit app
 st.title("Llama2 Chat CSV - 🦜🦙")
@@ -30,14 +47,8 @@ uploaded_file = st.sidebar.file_uploader("Upload File", type="csv")
 
 # Handle file upload
 if uploaded_file:
-    with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-        tmp_file.write(uploaded_file.getvalue())
-        tmp_file_path = tmp_file.name
-
-    # Load CSV data using CSVLoader
-    loader = CSVLoader(file_path=tmp_file_path, encoding="utf-8", csv_args={'delimiter': ','})
-    data = loader.load()
-
+   
+    data = load_data(uploaded_file)
     # Create embeddings using Sentence Transformers
     embeddings = HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2', model_kwargs={'device': 'cpu'})
 
